@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIY Fahrrad TPMS Dashboard</title>
+    
+    <!-- PWA Verknüpfungen -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#121212">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Fahrrad TPMS">
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #00adb5;
+            margin-bottom: 5px;
+            font-size: 1.8rem;
+        }
+        .notification-status {
+            font-size: 0.85rem;
+            color: #aaa;
+            margin-bottom: 25px;
+            background: #222;
+            padding: 6px 15px;
+            border-radius: 20px;
+            border: 1px solid #444;
+        }
+        .dashboard {
+            display: flex;
+            gap: 25px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .card {
+            background-color: #1e1e1e;
+            border-radius: 15px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            padding: 30px;
+            width: 290px;
+            text-align: center;
+            border: 2px solid #333;
+            transition: background-color 0.5s ease, border-color 0.5s ease;
+        }
+        .card.warning {
+            background-color: #3a0d0d;
+            border-color: #ff3333;
+        }
+        .wheel-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #eee;
+            margin-bottom: 5px;
+        }
+        .status {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 25px;
+            min-height: 20px;
+        }
+        .value-container {
+            margin: 20px 0;
+        }
+        .value-display {
+            font-size: 4.5rem;
+            font-weight: bold;
+            color: #00f5d4;
+            margin: 0;
+            line-height: 1;
+            transition: color 0.3s ease;
+        }
+        .card.warning .value-display {
+            color: #ff3333;
+        }
+        .unit {
+            font-size: 1.1rem;
+            color: #eee;
+            margin-top: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .temp-display {
+            font-size: 1.2rem;
+            color: #aaa;
+            margin: 15px 0 25px 0;
+            border-top: 1px solid #333;
+            padding-top: 15px;
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: #2a2a2a;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+            text-align: left;
+        }
+        .settings-grid div {
+            display: flex;
+            flex-direction: column;
+        }
+        .settings-grid label {
+            margin-bottom: 4px;
+            color: #ccc;
+        }
+        .settings-grid input {
+            background: #121212;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 6px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+        .btn {
+            background-color: #00adb5;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            width: 100%;
+        }
+        .btn:hover { background-color: #007c82; }
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { background-color: #444; color: #888; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <h1>🚲 DIY Fahrrad TPMS Dashboard</h1>
+    <div id="pushStatus" class="notification-status">Klicke auf Verbinden, um Push-Rechte zu aktivieren</div>
+
+    <div class="dashboard">
+        <!-- VORDERRAD KACHEL -->
+        <div class="card" id="frontCard">
+            <div class="wheel-title">Vorderrad</div>
+            <div id="frontStatus" class="status">Nicht verbunden</div>
+            <div class="value-container">
+                <div class="value-display" id="frontPressureValue">--.--</div>
+                <div class="unit">bar</div>
+            </div>
+            <div class="temp-display">
+                Temperatur: <span id="frontTempValue">--</span> °C
+            </div>
+            <div class="settings-grid">
+                <div>
+                    <label>Ziel (bar):</label>
+                    <input type="number" id="frontTarget" value="3.5" step="0.1" min="0" max="10">
+                </div>
+                <div>
+                    <label>Toleranz (±):</label>
+                    <input type="number" id="frontTol" value="0.4" step="0.1" min="0.1" max="2">
+                </div>
+            </div>
+            <button id="frontConnectBtn" class="btn">Vorne verbinden</button>
+        </div>
+
+        <!-- HINTERRAD KACHEL -->
+        <div class="card" id="rearCard">
+            <div class="wheel-title">Hinterrad</div>
+            <div id="rearStatus" class="status">Nicht verbunden</div>
+            <div class="value-container">
+                <div class="value-display" id="rearPressureValue">--.--</div>
+                <div class="unit">bar</div>
+            </div>
+            <div class="temp-display">
+                Temperatur: <span id="rearTempValue">--</span> °C
+            </div>
+            <div class="settings-grid">
+                <div>
+                    <label>Ziel (bar):</label>
+                    <input type="number" id="rearTarget" value="4.0" step="0.1" min="0" max="10">
+                </div>
+                <div>
+                    <label>Toleranz (±):</label>
+                    <input type="number" id="rearTol" value="0.4" step="0.1" min="0.1" max="2">
+                </div>
+            </div>
+            <button id="rearConnectBtn" class="btn">Hinten verbinden</button>
+        </div>
+    </div>
+
+    <script>
+        const ESS_SERVICE_UUID = 0x181A;          
+        const PRESSURE_CHARACTERISTIC_UUID = 0x2A6D; 
+        const TEMPERATURE_CHARACTERISTIC_UUID = 0x2A6E; 
+
+        const activePressures = { front: 0.0, rear: 0.0 };
+        const alarmSent = { front: false, rear: false };
+
+        const pushStatusDiv = document.getElementById('pushStatus');
+        let swRegistration = null;
+
+        // Service Worker aus externer Datei registrieren
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js').then(reg => {
+                swRegistration = reg;
+                updatePushStatusDisplay();
+            }).catch(err => {
+                console.log("ServiceWorker-Fehler:", err);
+                pushStatusDiv.textContent = "⚙️ Starte die Seite über HTTPS oder localhost für Alarme!";
+            });
+        }
+
+        function updatePushStatusDisplay() {
+            if (!("Notification" in window)) {
+                pushStatusDiv.textContent = "❌ Dieser Browser unterstützt keine System-Push-Alarme.";
+            } else if (Notification.permission === "granted") {
+                pushStatusDiv.textContent = "🔔 System-Push-Benachrichtigungen sind aktiv.";
+            } else if (Notification.permission === "denied") {
+                pushStatusDiv.textContent = "🔕 Push-Rechte blockiert. Bitte im Browser freigeben.";
+            } else {
+                pushStatusDiv.textContent = "💬 Klicke auf Verbinden, um Push-Rechte zu aktivieren.";
+            }
+        }
+        updatePushStatusDisplay();
+
+        async function requestPushPermissionSecure() {
+            if (!("Notification" in window) || Notification.permission === "granted" || Notification.permission === "denied") {
+                return; 
+            }
+            try {
+                const permission = await Notification.requestPermission();
+                updatePushStatusDisplay();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // System-Push-Benachrichtigungen senden
+        function sendSystemPushNotification(title, message) {
+            if (Notification.permission === "granted") {
+                const options = {
+                    body: message,
+                    tag: 'tpms-critical-alert',
+                    renotify: true,
+                    silent: false,
+                    requireInteraction: true
+                };
+
+                if (swRegistration) {
+                    swRegistration.showNotification(title, options);
+                } else {
+                    new Notification(title, options);
+                }
+            }
+        }
+
+        function checkPressureAlarm(prefix) {
+            const display = document.getElementById(`${prefix}PressureValue`);
+            if (display.textContent === '--.--') return;
+
+            const card = document.getElementById(`${prefix}Card`);
+            const target = parseFloat(document.getElementById(`${prefix}Target`).value);
+            const tolerance = parseFloat(document.getElementById(`${prefix}Tol`).value);
+            const deviation = Math.abs(activePressures[prefix] - target);
+            const wheelName = prefix === 'front' ? 'Vorderrad' : 'Hinterrad';
+
+            if (deviation > tolerance) {
+                card.classList.add('warning');
+                if (!alarmSent[prefix]) {
+                    sendSystemPushNotification(
+                        `🚨 TPMS REIFEN-WARNUNG!`, 
+                        `Kritische Abweichung am ${wheelName}! Aktuell: ${activePressures[prefix].toFixed(2)} bar`
+                    );
+                    alarmSent[prefix] = true; 
+                }
+            } else {
+                card.classList.remove('warning');
+                alarmSent[prefix] = false; 
+            }
+        }
+
+        async function connectSensor(prefix) {
+            await requestPushPermissionSecure();
+
+            const connectBtn = document.getElementById(`${prefix}ConnectBtn`);
+            const statusDiv = document.getElementById(`${prefix}Status`);
+            const pressureDisplay = document.getElementById(`${prefix}PressureValue`);
+            const tempDisplay = document.getElementById(`${prefix}TempValue`);
+            const card = document.getElementById(`${prefix}Card`);
+
+            try {
+                statusDiv.textContent = 'Suche läuft...';
+                
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ services: [ESS_SERVICE_UUID] }]
+                });
+
+                statusDiv.textContent = 'Verbinde...';
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService(ESS_SERVICE_UUID);
+                
+                const pressureChar = await service.getCharacteristic(PRESSURE_CHARACTERISTIC_UUID);
+                const tempChar = await service.getCharacteristic(TEMPERATURE_CHARACTERISTIC_UUID);
+                
+                statusDiv.innerHTML = `Verbunden ✅<br><small>(${device.name || 'Sensor'})</small>`;
+                connectBtn.disabled = true;
+
+                const handlePressureData = (event) => {
+                    const value = event.target.value;
+                    const rawPressure = value.getUint32(0, true); 
+                    activePressures[prefix] = rawPressure / 1000000.0;
+                    pressureDisplay.textContent = activePressures[prefix].toFixed(2);
+                    checkPressureAlarm(prefix);
+                };
+
+                const handleTempData = (event) => {
+                    const value = event.target.value;
+                    const rawTemp = value.getInt16(0, true); 
+                    const tempC = rawTemp / 100.0;
+                    tempDisplay.textContent = tempC.toFixed(1);
+                };
+
+                await pressureChar.startNotifications();
+                pressureChar.addEventListener('characteristicvaluechanged', handlePressureData);
+
+                await tempChar.startNotifications();
+                tempChar.addEventListener('characteristicvaluechanged', handleTempData);
+
+                device.addEventListener('gattserverdisconnected', () => {
+                    statusDiv.textContent = 'Verbindung verloren.';
+                    pressureDisplay.textContent = '--.--';
+                    tempDisplay.textContent = '--';
+                    card.classList.remove('warning');
+                    alarmSent[prefix] = false;
+                    connectBtn.disabled = false;
+                });
+
+            } catch (error) {
+                console.error(error);
+                statusDiv.textContent = 'Fehler: ' + error.message;
+            }
+        }
+
+        document.getElementById('frontConnectBtn').addEventListener('click', () => connectSensor('front'));
+        document.getElementById('rearConnectBtn').addEventListener('click', () => connectSensor('rear'));
+
+        document.getElementById('frontTarget').addEventListener('input', () => checkPressureAlarm('front'));
+        document.getElementById('frontTol').addEventListener('input', () => checkPressureAlarm('front'));
+        document.getElementById('rearTarget').addEventListener('input', () => checkPressureAlarm('rear'));
+        document.getElementById('rearTol').addEventListener('input', () => checkPressureAlarm('rear'));
+    </script>
+</body>
+</html>
